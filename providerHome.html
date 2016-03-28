@@ -1,0 +1,111 @@
+<html lang="en-US">
+<script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.4.8/angular.min.js"></script>
+<script src="https://cdn.firebase.com/js/client/2.2.4/firebase.js"></script>
+<script src="https://cdn.firebase.com/libs/angularfire/1.1.2/angularfire.min.js"></script>
+ <body ng-app="provider-home" ng-controller="controller">
+<div>
+<h1> provider home </h1>
+</div>
+<div>
+    <h2>Welcome {{ userEmail }}</h2>
+    <button ng-click="logout()">logout</button>
+</div>
+<div>
+    <h3>Available Requests (no provider yet)</h3>
+    <ul>
+        <li ng-repeat="obj in available_request_data | filter:{ provider: 'n/a'}">{{ obj.name }} <button ng-click="accept_request(obj)">Accept</button></li>
+    </ul>
+</div>
+<div>
+    <h3>Incomplete Jobs (Accepted-status in progress)</h3>
+    <ul>
+        <li ng-repeat="obj in available_request_data | filter:{ completed: 'inprogress', provider: authId  }">{{ obj.name }} <button ng-click="complete_request(obj)" >Task completed</button> </li>
+    </ul>
+</div>
+
+<div>
+    <h3>Completed Jobs</h3>
+    <ul>
+        <li ng-repeat="obj in available_request_data | filter:{ completed: true , provider: authId }">{{ obj.name }} </li>
+    </ul>
+</div>
+
+<script>
+var app = angular.module('provider-home', ["firebase"]);
+app.controller('controller', function($scope, $firebaseArray) 
+{
+    var ref = new Firebase("https://snowmantest.firebaseio.com/");
+    var authData = ref.getAuth();
+    var authId= authData.uid;
+
+    console.log(authId);
+    if(authData)
+    {
+        ref.child("role").child(authData.uid).on("value", function(data) 
+        {
+            if(data.val() != "provider")
+            {
+                window.location.href = "home.html";
+            }
+        });
+    }
+
+// getting  provider email 
+
+console.log('********************');
+
+console.log(authData);
+
+console.log('########################');
+    if(authData !== null){
+    $scope.userEmail = authData.password.email;
+    }
+
+
+    var available_requests = ref.child("service_requests");
+    $scope.available_request_data = $firebaseArray(available_requests)
+
+    console.log( $scope.available_request_data);
+   
+// update the perticular request with provider user email at provider and completed key value to inprogress. 
+$scope.accept_request = function( currentObj ) 
+    {
+        console.log(currentObj);
+        var id=currentObj.$id;
+        var newData = $scope.available_request_data.$getRecord(id);
+        newData.completed='inprogress';
+        newData.provider=authData.uid ;
+        console.log(newData);
+
+        $scope.available_request_data.$save(newData);
+        
+    }
+    // update the perticular request request with provider user email at provider and completed to completed. 
+$scope.complete_request = function(currentObj) 
+    {
+        console.log(currentObj);
+        
+
+         var id=currentObj.$id;
+        var newData = $scope.available_request_data.$getRecord(id);
+        newData.completed=true
+        newData.provider=authData.uid ;
+        console.log(newData);
+
+        $scope.available_request_data.$save(newData);
+        
+
+    }
+
+
+
+$scope.logout = function() 
+    {
+        ref.unauth();
+        window.location.href = "index.html";
+    }
+
+});
+</script>
+</body>
+</html>
